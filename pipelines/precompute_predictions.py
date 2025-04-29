@@ -3,13 +3,9 @@ import sys
 import torch
 import torchvision.transforms as T
 import numpy as np
-from scipy.stats import entropy
-from transformers import WhisperProcessor, WhisperModel, WhisperForConditionalGeneration, AutoProcessor, WavLMModel, AutoFeatureExtractor
-#from preprocess_datasets import load_dataset
-import pandas as pd
+from transformers import  WhisperForConditionalGeneration, AutoFeatureExtractor
 import dill
 
-from torch.nn.functional import cosine_similarity
 
 sys.path.insert(0,os.path.join('/project/venv/lib/python3.8/site-packages/'))
 sys.path.insert(0,os.path.join('/venv/lib/python3.8/site-packages'))
@@ -62,24 +58,15 @@ def get_cumatts(atts):
     for layer in range(6):
         cumatts = []
         for k in range(atts[layer].shape[-1]):
-            #print("1", atts[layer].shape)
-            #print("2", atts[layer][:,:,:,k].shape)
             cumatt = torch.sum(atts[layer][:, :, :, k], dim=-1)
-            #print("3", cumatt.shape)
             # average over heads
             cumatt = torch.mean(cumatt, dim=-1)
-            #print("4", cumatt.shape)
-            # avg over samples
-            #cumatt = torch.mean(cumatt)
-            #print("5", cumatt.shape)
             cumatts.append(np.array(cumatt))
         layer_ca.append(cumatts)
     return layer_ca
 
 #https://scipython.com/blog/binning-a-2d-array-in-numpy/
 def rebin(arr, new_shape):
-    #print("new shape", new_shape)
-    #print("arr shape", arr.shape)
     shape = (new_shape[0], arr.shape[0] // new_shape[0],
              new_shape[1], arr.shape[1] // new_shape[1])
     return arr.reshape(shape).mean(-1).mean(1)
@@ -92,7 +79,6 @@ def att_representation(atts, variant, dim=None):
     # dim e.g. (30,30)
     # avg attentions across heads
     atts = list(map(lambda x: np.mean(np.array(x), axis=1), atts))  # 6x [n_samples,1500,1500]
-    # print("1", atts.__len__(), atts[0].shape)
     n_samples=atts[0].shape[0]
 
     # create representation
@@ -102,10 +88,8 @@ def att_representation(atts, variant, dim=None):
     elif variant == "avgpool":
         atts = np.array(atts)  # [6, n_samples, 1500, 1500]
         atts = torch.from_numpy(atts)
-        #print(atts.shape)
         atts = torch.nn.AdaptiveAvgPool2d((dim,dim))(atts)
         atts = np.array(atts)
-        #print("test", atts.shape)
         atts = atts.reshape([6, n_samples, atts.shape[-1] * atts.shape[-1]])  # [6, n_samples, dim?*dim?]
     elif variant == "resize":
         atts = np.array(atts)  # [6, n_samples, 1500, 1500]
@@ -132,10 +116,10 @@ def get_datt(atts):
 
 # tavgs get stored in subsets that have to be merged correctly n_subsets x n_layers x [n_samples, 512] -> n_layers x [n_samples_all, 512]
 def merge_avg(file_name, tavg_or_favg, blocks):
-    file_names = [f'{tavg_or_favg}/{file_name}.pkl']
+    file_names = [f'/{tavg_or_favg}/{file_name}.pkl']
     if blocks:
         for block in ["B1", "B2", "B3"]:
-            file_names.append(f'{tavg_or_favg}/{file_name}_{block}.pkl')
+            file_names.append(f'/{tavg_or_favg}/{file_name}_{block}.pkl')
 
 
     for name in file_names:
@@ -167,14 +151,14 @@ def merge_avg(file_name, tavg_or_favg, blocks):
             dill.dump(np.array(merged), outp)
 
 def merge_atts(file_name, blocks):
-    file_names = [f'attentions/{file_name}.pkl']
+    file_names = [f'/attentions/{file_name}.pkl']
     if blocks:
         for block in ["B1", "B2", "B3"]:
-            file_names.append(f'attentions/{file_name}_{block}.pkl')
+            file_names.append(f'/attentions/{file_name}_{block}.pkl')
 
     for name in file_names:
         data = []
-        with open(f'attentions/{file_name}.pkl', 'rb') as inp:
+        with open(f'/attentions/{file_name}.pkl', 'rb') as inp:
             try:
                 while True:  # load all subsets of the file
                     data.append(dill.load(inp))
@@ -187,14 +171,14 @@ def merge_atts(file_name, blocks):
             dill.dump(atts, outp)
 
 def merge_cumatts(file_name, blocks):
-    file_names = [f'cumatt/{file_name}.pkl']
+    file_names = [f'/cumatt/{file_name}.pkl']
     if blocks:
         for block in ["B1", "B2", "B3"]:
-            file_names.append(f'cumatt/{file_name}_{block}.pkl')
+            file_names.append(f'/cumatt/{file_name}_{block}.pkl')
 
     for name in file_names:
         data = []
-        with open(f'cumatt/{file_name}.pkl', 'rb') as inp:
+        with open(f'/cumatt/{file_name}.pkl', 'rb') as inp:
             try:
                 while True:  # load all subsets of the file
                     data.append(dill.load(inp))
@@ -222,7 +206,7 @@ def split_blocks(infos, block_ids, tavg_favg, file_name):
 
     names = ["B1", "B2", "B3"]
     for i,block in enumerate([block1,block2,block3]):
-        with open(f"{tavg_favg}/{file_name}_{names[i]}.pkl", "ab") as outp:
+        with open(f"/{tavg_favg}/{file_name}_{names[i]}.pkl", "ab") as outp:
             dill.dump(np.array(block), outp)
 
 
@@ -251,7 +235,7 @@ def predict_inputs(inputs, model, file_name, save_representations, save_favgs, s
                 #print("tavg")
                 tavg = get_tavg(pred.encoder_hidden_states)
                 split_blocks(tavg, block_ids[ind_before:ind], "tavg", file_name)
-                with open(f"tavg/{file_name}.pkl", "ab") as outp:
+                with open(f"/tavg/{file_name}.pkl", "ab") as outp:
                     dill.dump(tavg,outp)
                 del tavg
 
@@ -259,7 +243,7 @@ def predict_inputs(inputs, model, file_name, save_representations, save_favgs, s
                 #print("favg")
                 favg = get_favg(pred.encoder_hidden_states, num_frames[ind_before:ind])
                 split_blocks(favg, block_ids[ind_before:ind], "favg", file_name)
-                with open(f"favg/{file_name}.pkl", "ab") as outp:
+                with open(f"/favg/{file_name}.pkl", "ab") as outp:
                     dill.dump(favg,outp)
                 del favg
 
@@ -267,12 +251,12 @@ def predict_inputs(inputs, model, file_name, save_representations, save_favgs, s
                 #print("attention")
                 atts = get_datt(pred.encoder_attentions)
                 split_blocks(atts, block_ids[ind_before:ind], "attentions", file_name)
-                with open(f'attentions/{file_name}.pkl', 'ab') as outp:
+                with open(f'/attentions/{file_name}.pkl', 'ab') as outp:
                     dill.dump(atts, outp)
 
                 cumatts = get_cumatts(pred.encoder_attentions)
                 split_blocks(cumatts, block_ids[ind_before:ind], "cumatt", file_name)
-                with open(f'cumatt/{file_name}.pkl', 'ab') as outp:
+                with open(f'/cumatt/{file_name}.pkl', 'ab') as outp:
                     dill.dump(cumatts, outp)
 
             del pred
@@ -291,10 +275,10 @@ def merge_info_all(tavg_favg_attentions_cumatt, file, version, axis, blocks):
     info = dict()
     sevs = ["v_l", "l", "m", "h"]
     for sev in sevs:
-        info[sev] = load_pkl(f'{tavg_favg_attentions_cumatt}/{file}_{sev}_{version}.pkl')
+        info[sev] = load_pkl(f'/{tavg_favg_attentions_cumatt}/{file}_{sev}_{version}.pkl')
 
     infos_all = np.concatenate([info[sev] for sev in sevs], axis=axis)
-    with open(f"{tavg_favg_attentions_cumatt}/{file}_all_{version}.pkl", "wb") as outp:
+    with open(f"/{tavg_favg_attentions_cumatt}/{file}_all_{version}.pkl", "wb") as outp:
         dill.dump(infos_all, outp)
 
     if blocks:
@@ -323,7 +307,7 @@ def merge_sev_all(file, save_tavgs, save_favgs, save_attentions):
 
 def save_tavgs_attentions(file_names, subsets, model_pt, model_ft, save_representations, save_favgs,  save_attentions):
     for file in file_names:
-        ds = load_pkl(f"datasets/{file}.pkl")
+        ds = load_pkl(f"/datasets/{file}.pkl")
         print(file)
         for subset in subsets:
             print(subset)
@@ -349,8 +333,7 @@ if __name__ == "__main__":
     print("load model")
     ## Load model & Feature Extractor
     model = WhisperForConditionalGeneration.from_pretrained("openai/whisper-base", attn_implementation="eager")
-    #model_ft = WhisperModel.from_pretrained("hiwden00/dysarthria-base", attn_implementation="eager")
-    model_ft = WhisperForConditionalGeneration.from_pretrained("/project/thesis/model/whisper-base-ft/checkpoint-21", attn_implementation="eager")
+    model_ft = WhisperForConditionalGeneration.from_pretrained("/model/whisper-base-ft/checkpoint-21", attn_implementation="eager")
 
     for m in [model, model_ft]:
         m.generation_config.language = "english"
@@ -364,7 +347,6 @@ if __name__ == "__main__":
     # save tavgs and attentions
     file_names = ["final"]
     subsets = ["v_l", "l", "m", "h", "c"]
-    #subsets = ["m"]
     save_tavgs= True
     save_attentions = True
     save_favgs = True

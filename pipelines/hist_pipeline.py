@@ -19,10 +19,7 @@ os.environ['HTTP_PROXY'] = 'http://fp.cs.ovgu.de:3210/'
 os.environ['HTTPS_PROXY'] = 'http://fp.cs.ovgu.de:3210/'
 
 import torch
-import torch.nn as nn
-import numpy as np
 from transformers import WhisperProcessor, WhisperForConditionalGeneration, AutoFeatureExtractor
-import pandas as pd
 import dill
 from pandas.core.common import flatten
 from sys import argv
@@ -72,11 +69,9 @@ if __name__ == '__main__':
     print("load model")
     ## Load model & Feature Extractor
     model = WhisperForConditionalGeneration.from_pretrained("openai/whisper-base", attn_implementation="eager")
-    # model_ft = WhisperModel.from_pretrained("hiwden00/dysarthria-base", attn_implementation="eager")
-    #model_ft = WhisperForConditionalGeneration.from_pretrained("/project/thesis/model/base-ft")
+    model_ft = WhisperForConditionalGeneration.from_pretrained("/model/whisper-base-ft/checkpoint-21", attn_implementation="eager")
 
-    #for m in [model, model_ft]:
-    for m in [model]:
+    for m in [model, model_ft]:
         m.generation_config.language = "english"
         m.generation_config.task = "transcribe"
         m.generation_config.is_multilingual = False
@@ -88,27 +83,27 @@ if __name__ == '__main__':
     # load dataset
     print("load dataset")
     if argv[1] == "merged":
-        ds = load_pkl(f"datasets/severities_merged.pkl")
+        ds = load_pkl(f"/datasets/severities_merged.pkl")
     elif argv[1] == "test":
-        ds = load_pkl(f"datasets/severities_merged_test.pkl")
+        ds = load_pkl(f"/datasets/severities_merged_test.pkl")
     elif argv[1] == "unmerged":
-        ds = load_pkl(f"datasets/severities.pkl")
+        ds = load_pkl(f"/datasets/severities.pkl")
     elif argv[1] == "M2":
-        ds = load_pkl(f"datasets/severities_M2.pkl")
+        ds = load_pkl(f"/datasets/severities_M2.pkl")
     elif argv[1] == "M3":
-        ds = load_pkl(f"datasets/severities_M3.pkl")
+        ds = load_pkl(f"/datasets/severities_M3.pkl")
     elif argv[1] == "M4":
-        ds = load_pkl(f"datasets/severities_M4.pkl")
+        ds = load_pkl(f"/datasets/severities_M4.pkl")
     elif argv[1] == "M5":
-        ds = load_pkl(f"datasets/severities_M5.pkl")
+        ds = load_pkl(f"/datasets/severities_M5.pkl")
     elif argv[1] == "M6":
-        ds = load_pkl(f"datasets/severities_M6.pkl")
+        ds = load_pkl(f"/datasets/severities_M6.pkl")
     elif argv[1] == "M7":
-        ds = load_pkl(f"datasets/severities_M7.pkl")
+        ds = load_pkl(f"/datasets/severities_M7.pkl")
     elif argv[1] == "M8":
-        ds = load_pkl(f"datasets/severities_M8.pkl")
+        ds = load_pkl(f"/datasets/severities_M8.pkl")
     elif argv[1] == "final":
-        ds = load_pkl(f"datasets/final.pkl")
+        ds = load_pkl(f"/datasets/final.pkl")
     else:
         print("wrong modus")
         print(argv[1])
@@ -128,10 +123,10 @@ if __name__ == '__main__':
     print("count samples")
     counts = count_transcripts(transcriptions)
 
-    with open(f'datasets/counts_{argv[1]}_pt.pkl', 'wb') as outp:
+    with open(f'/datasets/counts_{argv[1]}_pt.pkl', 'wb') as outp:
         dill.dump(counts, outp)
 
-    with open(f'datasets/transcripts_{argv[1]}_pt.pkl', 'wb') as outp:
+    with open(f'/datasets/transcripts_{argv[1]}_pt.pkl', 'wb') as outp:
         dill.dump(transcriptions, outp)
 
 

@@ -4,7 +4,6 @@ import torch
 import numpy as np
 from scipy.stats import entropy
 from transformers import WhisperForConditionalGeneration, AutoFeatureExtractor
-#from preprocess_datasets import load_dataset
 import pandas as pd
 import dill
 import yaml
@@ -139,18 +138,18 @@ def head_scores_csv(n_samples, encoder_attentions, n_heads, sequence_len, file_n
     layers = ["Layer0", "Layer1", "Layer2", "Layer3", "Layer4", "Layer5"]
     heads = ["Head0", "Head1", "Head2", "Head3", "Head4", "Head5", "Head6", "Head7"]
     df = pd.DataFrame(all_g_scores, index=layers, columns=heads)
-    df.to_csv(f"head_scores/g_scores_{file_name}.csv")
+    df.to_csv(f"/head_scores/g_scores_{file_name}.csv")
     df = pd.DataFrame(all_v_scores, index=layers, columns=heads)
-    df.to_csv(f"head_scores/v_scores_{file_name}.csv")
+    df.to_csv(f"/head_scores/v_scores_{file_name}.csv")
     df = pd.DataFrame(all_d_scores, index=layers, columns=heads)
-    df.to_csv(f"head_scores/d_scores_{file_name}.csv")
+    df.to_csv(f"/head_scores/d_scores_{file_name}.csv")
 
     df = pd.DataFrame(all_g_scores_b, index=layers, columns=heads)
-    df.to_csv(f"head_scores/g_scores_{file_name}_b.csv")
+    df.to_csv(f"/head_scores/g_scores_{file_name}_b.csv")
     df = pd.DataFrame(all_v_scores_b, index=layers, columns=heads)
-    df.to_csv(f"head_scores/v_scores_{file_name}_b.csv")
+    df.to_csv(f"/head_scores/v_scores_{file_name}_b.csv")
     df = pd.DataFrame(all_d_scores_b, index=layers, columns=heads)
-    df.to_csv(f"head_scores/d_scores_{file_name}_b.csv")
+    df.to_csv(f"/head_scores/d_scores_{file_name}_b.csv")
 
 
 def get_examplary_atts(ds, sev, n_samples, model):
@@ -222,12 +221,12 @@ def rank_classify(severities, n_samples):
     for variant in ["pt", "ft"]:
         for sev in severities:
             scores = {
-                'g':pd.read_csv(f"head_scores/g_scores_{sev}_{variant}_{n_samples}.csv", index_col=0),
-                'v':pd.read_csv(f"head_scores/v_scores_{sev}_{variant}_{n_samples}.csv", index_col=0),
-                'd':pd.read_csv(f"head_scores/d_scores_{sev}_{variant}_{n_samples}.csv", index_col=0),
-                'g_b': pd.read_csv(f"head_scores/g_scores_{sev}_{variant}_{n_samples}_b.csv", index_col=0),
-                'v_b': pd.read_csv(f"head_scores/v_scores_{sev}_{variant}_{n_samples}_b.csv", index_col=0),
-                'd_b': pd.read_csv(f"head_scores/d_scores_{sev}_{variant}_{n_samples}_b.csv", index_col=0),
+                'g':pd.read_csv(f"/head_scores/g_scores_{sev}_{variant}_{n_samples}.csv", index_col=0),
+                'v':pd.read_csv(f"/head_scores/v_scores_{sev}_{variant}_{n_samples}.csv", index_col=0),
+                'd':pd.read_csv(f"/head_scores/d_scores_{sev}_{variant}_{n_samples}.csv", index_col=0),
+                'g_b': pd.read_csv(f"/head_scores/g_scores_{sev}_{variant}_{n_samples}_b.csv", index_col=0),
+                'v_b': pd.read_csv(f"/head_scores/v_scores_{sev}_{variant}_{n_samples}_b.csv", index_col=0),
+                'd_b': pd.read_csv(f"/head_scores/d_scores_{sev}_{variant}_{n_samples}_b.csv", index_col=0),
             }
             rank = {
                 'g': scores['g'].rank(axis=1, ascending=False),
@@ -240,10 +239,10 @@ def rank_classify(severities, n_samples):
 
             classifications, classifications_b = classify_heads(rank, 8)
 
-            with open(f"head_scores/classifications_{sev}_{variant}_{n_samples}.pkl", "wb") as outp:
+            with open(f"/head_scores/classifications_{sev}_{variant}_{n_samples}.pkl", "wb") as outp:
                 dill.dump(classifications, outp)
 
-            with open(f"head_scores/classifications_{sev}_{variant}_{n_samples}_b.pkl", "wb") as outp:
+            with open(f"/head_scores/classifications_{sev}_{variant}_{n_samples}_b.pkl", "wb") as outp:
                 dill.dump(classifications_b, outp)
 
 
@@ -326,23 +325,23 @@ def get_head_masks_baseline():  # 0-global, 1-vertical, 2-diagonal
     return head_masks
 
 def head_masks(version,ptft):# version z.B. m_pt_2
-    classifications = load_pkl(f'head_scores/classifications_{version}.pkl')
+    classifications = load_pkl(f'/head_scores/classifications_{version}.pkl')
     categories = [0,1,2]
     cat_names = ["global","vertical","diagonal"]
     for i,cat in enumerate(categories):
         for j in range(10): # 10 x random overall masks
             head_masks = get_head_masks(classifications, cat)
             # overall random head masks
-            with open(f"head_scores/masks_{cat_names[i]}_total_{j}_{ptft}.pkl", 'wb') as outp:
+            with open(f"/head_scores/masks_{cat_names[i]}_total_{j}_{ptft}.pkl", 'wb') as outp:
                 dill.dump(head_masks, outp)
         # layerwise head masks
         for layer in range(6):
             head_masks = get_head_masks_layer(classifications, cat, layer)
-            with open(f"head_scores/masks_{cat_names[i]}_{layer}_{ptft}.pkl", 'wb') as outp:
+            with open(f"/head_scores/masks_{cat_names[i]}_{layer}_{ptft}.pkl", 'wb') as outp:
                 dill.dump(head_masks, outp)
 
     head_masks_baseline = get_head_masks_baseline()
-    with open("head_scores/masks_baseline.pkl", 'wb') as outp:
+    with open("/head_scores/masks_baseline.pkl", 'wb') as outp:
         dill.dump(head_masks_baseline, outp)
 
 # task: "asr_ua.py"/"sev_ua.py"/"sid_ua.py"
@@ -355,10 +354,10 @@ def head_ablation(task, expname, ptft, gvd):
     for layer in range(6):
         print("layer", layer)
         results_layerwise[layer]  = []
-        masks = load_pkl(f'head_scores/masks_{gvd}_{layer}_{ptft}.pkl')
+        masks = load_pkl(f'/head_scores/masks_{gvd}_{layer}_{ptft}.pkl')
 
         for mask in masks:
-            with open("head_scores/mask_to_use.pkl", 'wb') as outp:
+            with open("/head_scores/mask_to_use.pkl", 'wb') as outp:
                 dill.dump(mask, outp)
             target_dir =f"result/{expname}"
             start = 3
@@ -370,15 +369,15 @@ def head_ablation(task, expname, ptft, gvd):
 
             # load results
             if task == "pr_ua.py":
-                with open(f"/project/thesis/result/{expname}/evaluate/valid_best/test_asr/result.yaml") as f:
+                with open(f"/result/{expname}/evaluate/valid_best/test_asr/result.yaml") as f:
                     result = yaml.load(f, Loader=yaml.FullLoader)
                     results_layerwise[layer].append(result)
             else:
-                with open(f"/project/thesis/result/{expname}/evaluate/valid_best/test_{task[:3]}/result.yaml") as f:
+                with open(f"/result/{expname}/evaluate/valid_best/test_{task[:3]}/result.yaml") as f:
                     result = yaml.load(f, Loader=yaml.FullLoader)
                     results_layerwise[layer].append(result)
 
-    with open(f"head_scores/ablation_{expname}_{gvd}_layerwise_{ptft}.pkl", 'wb') as outp:
+    with open(f"/head_scores/ablation_{expname}_{gvd}_layerwise_{ptft}.pkl", 'wb') as outp:
         dill.dump(results_layerwise, outp)
 
     print(task, expname, gvd, "total")
@@ -387,9 +386,9 @@ def head_ablation(task, expname, ptft, gvd):
     for i in range(10):
         print("subset",i)
         results_subsets[i] = []
-        masks = load_pkl(f'head_scores/masks_{gvd}_total_{i}_{ptft}.pkl')
+        masks = load_pkl(f'/head_scores/masks_{gvd}_total_{i}_{ptft}.pkl')
         for mask in masks:
-            with open("head_scores/mask_to_use.pkl", 'wb') as outp:
+            with open("/head_scores/mask_to_use.pkl", 'wb') as outp:
                 dill.dump(mask, outp)
             target_dir = f"result/{expname}"
             print("target_dir", target_dir)
@@ -402,11 +401,11 @@ def head_ablation(task, expname, ptft, gvd):
 
             # load results
             if task == "pr_ua.py":
-                with open(f"/project/thesis/result/{expname}/evaluate/valid_best/test_asr/result.yaml") as f:
+                with open(f"/result/{expname}/evaluate/valid_best/test_asr/result.yaml") as f:
                     result = yaml.load(f, Loader=yaml.FullLoader)
                     results_subsets[i].append(result)
             else:
-                with open(f"/project/thesis/result/{expname}/evaluate/valid_best/test_{task[:3]}/result.yaml") as f:
+                with open(f"/result/{expname}/evaluate/valid_best/test_{task[:3]}/result.yaml") as f:
                     result = yaml.load(f, Loader=yaml.FullLoader)
                     results_subsets[i].append(result)
 
@@ -414,20 +413,6 @@ def head_ablation(task, expname, ptft, gvd):
     with open(f"head_scores/ablation_{expname}_{gvd}_total_{ptft}.pkl", 'wb') as outp:
         dill.dump(results_subsets, outp)
 
-
-
-
-    '''
-    for i in range(len(masks)):
-        test_name = "test-clean"
-        model = f"whisper_pt_masked{i}"
-        ckpt = "/project/thesis/s3prl/s3prl/result/downstream/exp1/dev-clean-best.ckpt"
-        expdir =  "pt_asr_test1"
-        args = ["python3", "run_downstream.py", "-m", "evaluate", "-t", test_name, "-i", ckpt, "-u", model, "-d", task, "-n", expdir ]
-        result = subprocess.run(['ls', '-l'], capture_output=True, text=True)
-        print(result.stdout)
-        return
-     '''
 
 
     ####################################################
@@ -438,7 +423,7 @@ if __name__ == "__main__":
 
     print("load model")
     model = WhisperForConditionalGeneration.from_pretrained("openai/whisper-base", attn_implementation="eager")
-    model_ft = WhisperForConditionalGeneration.from_pretrained("/project/thesis/model/whisper-base-ft/checkpoint-21", attn_implementation="eager")
+    model_ft = WhisperForConditionalGeneration.from_pretrained("/model/whisper-base-ft/checkpoint-21", attn_implementation="eager")
 
     for m in [model, model_ft]:
         m.generation_config.language = "english"
@@ -450,21 +435,19 @@ if __name__ == "__main__":
     decoder_input_ids = torch.tensor([[1, 1]]) * model.config.decoder_start_token_id
 
     # Calculate g-,v-, d-scores
-    #severities = ["v_l", "l","m", "h", "all", "c"]
-    #n_samples = 10
-    #ds = load_pkl('datasets/final.pkl')
-    #calc_head_scores(ds, severities, n_samples, model, model_ft)
-    #rank_classify(severities,n_samples)
+    severities = ["v_l", "l","m", "h", "all", "c"]
+    n_samples = 10
+    ds = load_pkl('/datasets/final.pkl')
+    calc_head_scores(ds, severities, n_samples, model, model_ft)
+    rank_classify(severities,n_samples)
 
-    #version = "all_pt_10"
-    #head_masks(version,"pt")
-    #version = "all_ft_10"
-    #head_masks(version, "ft")
+    version = "all_pt_10"
+    head_masks(version,"pt")
+    version = "all_ft_10"
+    head_masks(version, "ft")
 
-    #tasks = ["sev_ua.py","sid_ua.py","asr_ua.py"]
-    tasks = ["pr_ua.py"]
-    #expnames = ["exp_sev_pt", "exp_sid_pt", "exp_asr_pt", "exp_sev_ft", "exp_sid_ft", "exp_asr_ft"]
-    expnames = ["exp_pr_pt", "exp_pr_ft"]
+    tasks = ["sev_ua.py","sid_ua.py","asr_ua.py","pr_ua.py"]
+    expnames = ["exp_sev_pt", "exp_sid_pt", "exp_asr_pt", "exp_pr_pt", "exp_sev_ft", "exp_sid_ft", "exp_asr_ft", "exp_pr_ft"]
     for task, expname in zip(tasks+tasks, expnames):
         head_ablation(task, expname, expname[-2:],"global")
         head_ablation(task, expname, expname[-2:],"vertical")

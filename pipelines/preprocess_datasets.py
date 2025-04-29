@@ -18,71 +18,16 @@ os.environ['HTTP_PROXY'] = 'http://fp.cs.ovgu.de:3210/'
 os.environ['HTTPS_PROXY'] = 'http://fp.cs.ovgu.de:3210/'
 
 import torch
-import torch.nn as nn
 import numpy as np
 import pandas as pd
-from transformers import AutoFeatureExtractor
-from datasets import load_dataset
-import librosa
-import librosa.display
 import dill
-from scipy.io import wavfile
 from ipynb.fs.full.uaspeech_dataset import *
-from sys import argv
 
 if torch.cuda.is_available():
     print(f"Using GPU: {torch.cuda.get_device_name(0)}")
 else:
     print("GPU is not available")
 
-
-# trim leading and trailing silence
-def trim(example):
-    trimmed = librosa.effects.trim(example, top_db=20)
-    return np.array(trimmed[0])
-
-
-# label samples with short speaker id and correct severity
-def process_speaker(example):
-    ids_v_l = ["M01", "M04", "F03", "M12"]
-    ids_l = ["M07", "F02", "M16"]
-    ids_m =  ["M05", "F04", "M11"]
-    ids_h = ["M08", "M09", "M10", "F05", "M14"]
-    unknown = ["M13"]
-    speaker_ids = ids_v_l + ids_l + ids_m + ids_h + unknown
-
-
-    for idx in speaker_ids:
-        if idx in example["speaker_id"]:
-            example["speaker_id"] = idx
-
-
-def process_severity(example):
-    ids_v_l = ["M01", "M04", "F03", "M12"]
-    ids_l = ["M07", "F02", "M16"]
-    ids_m = ["M05", "F04", "M11"]
-    ids_h = ["M08", "M09", "M10", "F05", "M14"]
-    unknown = ["M13"]
-    severities = ["v_l", "l", "m", "h"]
-
-    for i, sev in enumerate([ids_v_l, ids_l, ids_m, ids_h]):
-        if example["speaker_id"] in sev:
-            example["severity"] = severities[i]
-
-def extract_features(example, feature_extractor):
-    example["features"] = feature_extractor(example["audio"], do_normalize=True, sampling_rate=16000, return_tensors="pt").input_features
-
-# preprocess dataset
-def preprocess(example, to_trim):
-    #example["audio"] = np.array(example["audio"]["array"])
-
-    if to_trim:
-        example["audio"] = trim(example["audio"])
-
-    #process_speaker(example)
-    process_severity(example)
-
-    return example
 
 def create_split(ds):
     severities = {
@@ -161,7 +106,7 @@ def create_split(ds):
             severities[split]["severities_all"].extend(np.full(len(severities[split][f"transcripts_{sev}"]), sev))
 
     print("save splits")
-    with open('datasets/split.pkl', 'wb') as outp:
+    with open('/datasets/split.pkl', 'wb') as outp:
         dill.dump(severities, outp)
 
 
@@ -239,7 +184,7 @@ def create_csv(task):
             df = pd.DataFrame(list(zip(id, wav_path, label)), columns=["id", "wav_path", "label"])
 
 
-        df.to_csv(f"datasets/{split}_{task}.csv", index=False)
+        df.to_csv(f"/datasets/{split}_{task}.csv", index=False)
 
 
 
@@ -318,26 +263,24 @@ def create_ds(ds, name, remove):
 
 
 if __name__ == "__main__":
-    # load uaspeech
-    #ua_all = load_dataset("Vinotha/uaspeechall", split="all").shuffle()
 
     # correct data here
-    #with open("/data/project/uaspeech/ua_ds_merged.pkl", 'rb') as inp: # use merged data
-    #    ds_all = dill.load(inp)
+    with open("/data/project/uaspeech/ua_ds_merged.pkl", 'rb') as inp: # use merged data
+        ds_all = dill.load(inp)
 
     # correct name
-    #name = "datasets/severities_merged.pkl"
+    name = "/datasets/severities_merged.pkl"
 
     #with open(f"/data/project/uaspeech/ua_ds_{argv[1]}.pkl", 'rb') as inp: # use M2
     #   ds_all = dill.load(inp)
 
     #name=f"/project/thesis/datasets/{argv[1]}.pkl"
 
-    #print("create datasets")
-    #create_ds(ds_all, name, False)
+    print("create datasets")
+    create_ds(ds_all, name, False)
 
-    #print("create split")
-    #create_split(ds_all)
+    print("create split")
+    create_split(ds_all)
 
     #create_csv("asr")
     #create_csv("sid")

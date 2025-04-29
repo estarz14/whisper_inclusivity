@@ -19,19 +19,14 @@ os.environ['HTTP_PROXY'] = 'http://fp.cs.ovgu.de:3210/'
 os.environ['HTTPS_PROXY'] = 'http://fp.cs.ovgu.de:3210/'
 
 import torch
-import torch.nn as nn
-import numpy as np
-from matplotlib import pyplot as plt
 from transformers import WhisperProcessor, WhisperForConditionalGeneration
-from torch.utils.data import Dataset, DataLoader
-import pandas as pd
+from torch.utils.data import Dataset
 import dill
 import evaluate
 from transformers import TrainerCallback, Seq2SeqTrainingArguments, Seq2SeqTrainer, EvalPrediction
 from transformers.models.whisper.english_normalizer import BasicTextNormalizer
 from dataclasses import dataclass
 from typing import Any, Dict, List, Union
-import soundfile
 
 
 class UADataset(Dataset):
@@ -180,7 +175,7 @@ if __name__ == "__main__":
     decoder_input_ids = torch.tensor([[1, 1]]) * model.config.decoder_start_token_id
 
     # Load data
-    ds_ua = load_pkl('datasets/split.pkl')
+    ds_ua = load_pkl('/datasets/split.pkl')
     ds_ua["train"]["transcripts_all"] = list(
         map(lambda x: prepare_labels(x, processor), ds_ua["train"]["transcripts_all"]))
     ds_ua["test"]["transcripts_all"] = list(
@@ -215,7 +210,7 @@ if __name__ == "__main__":
 
     # Training Args
     training_args = Seq2SeqTrainingArguments(
-        output_dir="model/whisper-base-ft",
+        output_dir="/model/whisper-base-ft",
         per_device_train_batch_size=8,
         gradient_accumulation_steps=2,  # increase by 2x for every 2x decrease in batch size
         learning_rate=1e-5,
@@ -254,7 +249,7 @@ if __name__ == "__main__":
     print("start training")
     history = trainer.train()
 
-    with open(f'model/log_hist_30.pkl', 'wb') as outp:
+    with open(f'/model/log_hist_30.pkl', 'wb') as outp:
         dill.dump(trainer.state.log_history, outp)
 
     # evaluation
@@ -262,4 +257,4 @@ if __name__ == "__main__":
 
     print("save model")
     # save model
-    model.save_pretrained("/project/thesis/model/base-ft")
+    model.save_pretrained("/model/base-ft")
